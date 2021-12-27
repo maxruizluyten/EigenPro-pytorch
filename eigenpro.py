@@ -5,9 +5,10 @@ import torch
 
 import torch.nn as nn
 import numpy as np
+from copy import deepcopy
 
-import svd
-import utils
+from EigenPro import svd
+from EigenPro import utils
 
 
 def asm_eigenpro_fn(samples, map_fn, top_q, bs_gpu, alpha, min_q=5, seed=1):
@@ -165,11 +166,11 @@ class FKR_EigenPro(nn.Module):
 
     def fit(self, x_train, y_train, x_val, y_val, epochs, mem_gb,
             n_subsamples=None, top_q=None, bs=None, eta=None,
-            n_train_eval=5000, run_epoch_eval=True, scale=1, seed=1):
+            n_train_eval=5000, run_epoch_eval=True, scale=1, seed=1, weights = False):
 
         n_samples, n_labels = y_train.shape
         if n_subsamples is None:
-            if n_samples < 100000:
+            if n_samples <= 100000:
                 n_subsamples = min(n_samples, 2000)
             else:
                 n_subsamples = 12000
@@ -208,7 +209,7 @@ class FKR_EigenPro(nn.Module):
         res = dict()
         initial_epoch = 0
         train_sec = 0  # training time in seconds
-
+        Weights = []
         for epoch in epochs:
             start = time.time()
             for _ in range(epoch - initial_epoch):
@@ -232,7 +233,9 @@ class FKR_EigenPro(nn.Module):
                       (1 - tv_score['multiclass-acc']) * 100,
                       epoch, train_sec, tr_score['mse'], tv_score['mse']))
                 res[epoch] = (tr_score, tv_score, train_sec)
-
+                if weights:
+                    Weights.append(deepcopy(self.weight).cpu())
             initial_epoch = epoch
-
+        if weights:
+            return res, Weights
         return res

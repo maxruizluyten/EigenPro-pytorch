@@ -2,7 +2,7 @@
 import scipy.linalg as linalg
 import numpy as np
 
-import utils
+from EigenPro import utils
 
 
 def nystrom_kernel_svd(samples, kernel_fn, top_q):
